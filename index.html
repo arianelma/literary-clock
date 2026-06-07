@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relógio Literário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Crimson+Pro:ital,wght@0,400;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Lora:ital,wght@0,400;1,400&family=Old+Standard+TT:ital,wght@0,400;1,400&family=Playfair+Display:ital,wght@0,400;1,400&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#ece2cf; --bg2:#e3d6bd; --ink:#2c2417; --ink-soft:#6e6049;
+         --accent:#7d3a2c; --rule:rgba(44,36,23,.20); --rule-soft:rgba(44,36,23,.10); --font:'EB Garamond'; }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    font-family:var(--font,'EB Garamond'),Georgia,serif; color:var(--ink);
+    background:radial-gradient(120% 100% at 50% 0%, var(--bg2) 0%, var(--bg) 55%, var(--bg2) 100%);
+    transition:background 1.4s ease, color 1.4s ease; overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:3;
+    opacity:.05; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  body.dark::after{ mix-blend-mode:screen; opacity:.04; }
+  .vignette{ position:fixed; inset:0; pointer-events:none; z-index:2; box-shadow:inset 0 0 22vh 6vh rgba(0,0,0,.16); }
+  body.dark .vignette{ box-shadow:inset 0 0 26vh 8vh rgba(0,0,0,.55); }
+
+  @keyframes fade{ from{opacity:0} to{opacity:1} }
+  .page{ position:relative; z-index:1; height:100%; display:flex; flex-direction:column;
+    padding:clamp(22px,4.5vh,52px) clamp(26px,5vw,72px); animation:fade 1.1s ease both; }
+  .page::before{ content:""; position:absolute; inset:clamp(14px,2.2vh,26px) clamp(16px,2.4vw,30px);
+    border:1px solid var(--rule); pointer-events:none; }
+  .page::after{ content:""; position:absolute; inset:clamp(20px,3vh,34px) clamp(22px,3.2vw,40px);
+    border:1px solid var(--rule-soft); pointer-events:none; }
+
+  header{ display:flex; justify-content:space-between; align-items:flex-start;
+    font-size:clamp(13px,1.6vh,17px); letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-soft); font-weight:500; }
+  header .right{ text-align:right; padding-right:52px; }
+  .weather-temp{ color:var(--ink); }
+  .wicon{ width:1.2em; height:1.2em; vertical-align:-0.25em; margin-right:.5em; color:var(--ink); }
+  .moon-line, .event-line{ font-family:var(--font,'EB Garamond'),Georgia,serif; text-transform:none;
+    letter-spacing:0; font-style:italic; font-weight:400; display:flex; align-items:center;
+    justify-content:flex-end; gap:7px; margin-top:7px; opacity:.78; }
+  .moon-line{ font-size:.98em; }
+  .event-line{ font-size:.85em; opacity:.62; gap:6px; margin-top:3px; }
+  .moon-icon{ width:1.25em; height:1.25em; flex-shrink:0; color:var(--ink-soft); }
+  .event-marker{ display:inline-block; opacity:.8; color:var(--accent); }
+  header .label{ font-size:.72em; letter-spacing:.22em; display:block; margin-bottom:.35em; opacity:.7; }
+
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; gap:clamp(20px,4vh,46px); }
+  .time{ font-family:'Cormorant',serif; font-weight:300; font-size:clamp(84px,21vh,260px);
+    line-height:.9; letter-spacing:.01em; font-variant-numeric:tabular-nums; }
+  .time .colon{ animation:blink 2s steps(1,end) infinite; }
+  @keyframes blink{ 0%,50%{opacity:1} 51%,100%{opacity:.28} }
+
+  .quote-wrap{ max-width:min(900px,84vw); }
+  .quote{ font-style:italic; font-size:clamp(20px,3.4vh,38px); line-height:1.35; }
+  .quote::before{ content:"\201C"; } .quote::after{ content:"\201D"; }
+  .attr{ margin-top:clamp(12px,1.8vh,22px); font-size:clamp(12px,1.6vh,17px);
+    letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft); font-weight:500; }
+  .attr .work{ font-style:italic; text-transform:none; letter-spacing:.04em; }
+  .rule-mini{ width:46px; height:1px; background:var(--accent); margin:0 auto; opacity:.6; }
+
+  footer{ display:flex; justify-content:center; }
+  .reading{ text-align:center; }
+  .reading .label{ font-size:clamp(11px,1.4vh,14px); letter-spacing:.28em; text-transform:uppercase;
+    color:var(--ink-soft); opacity:.75; display:block; margin-bottom:.4em; }
+  .reading .book{ font-size:clamp(16px,2.2vh,24px); font-style:italic; }
+  .reading .book .by{ font-style:normal; color:var(--ink-soft); font-size:.8em; }
+  .progress{ margin:14px auto 0; max-width:340px; }
+  .progress-bar{ width:100%; height:1px; background:var(--rule); position:relative; }
+  .progress-fill{ position:absolute; left:0; top:0; height:100%; background:var(--accent); transition:width .8s ease; }
+  .progress-text{ font-size:.7em; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft);
+    margin-top:7px; opacity:.7; text-align:center; }
+
+  .gear{ position:fixed; top:14px; right:14px; z-index:6; cursor:pointer; width:40px; height:40px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--accent);
+    opacity:.75; background:var(--bg); border:1.5px solid var(--accent);
+    transition:opacity .3s, transform .4s, background .3s; font-size:19px; box-shadow:0 2px 12px rgba(0,0,0,.14); }
+  .gear:hover{ opacity:1; transform:rotate(40deg); }
+
+  .panel{ position:fixed; inset:0; z-index:10; display:none; background:rgba(0,0,0,.45); backdrop-filter:blur(3px); }
+  .panel.open{ display:flex; align-items:center; justify-content:center; }
+  .panel-inner{ background:var(--bg); border:1px solid var(--rule); width:min(560px,92vw);
+    max-height:88vh; overflow-y:auto; padding:34px 36px; box-shadow:0 30px 80px rgba(0,0,0,.4); }
+  .panel h2{ font-family:'Cormorant',serif; font-weight:400; font-size:34px; margin-bottom:6px; }
+  .panel .sub{ color:var(--ink-soft); font-size:14px; margin-bottom:24px; font-style:italic; }
+  .panel section{ margin-bottom:26px; }
+  .panel h3{ font-size:13px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:12px; }
+  .panel input,.panel select,.panel textarea{ width:100%; font-family:'EB Garamond',serif; font-size:17px;
+    padding:10px 12px; background:var(--bg2); color:var(--ink); border:1px solid var(--rule); margin-bottom:8px; }
+  .panel textarea{ resize:vertical; min-height:58px; }
+  .row{ display:flex; gap:8px; } .row input{ margin-bottom:0; }
+  button.act{ font-family:'EB Garamond',serif; cursor:pointer; padding:10px 18px; background:var(--accent);
+    color:var(--bg); border:none; font-size:15px; letter-spacing:.04em; transition:opacity .2s; white-space:nowrap; }
+  button.act:hover{ opacity:.85; }
+  button.ghost{ background:transparent; color:var(--ink-soft); border:1px solid var(--rule); }
+  .qlist{ list-style:none; margin-top:14px; }
+  .qlist li{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
+    padding:10px 0; border-bottom:1px solid var(--rule-soft); font-size:16px; }
+  .qlist .qtext{ font-style:italic; } .qlist .qauth{ color:var(--ink-soft); font-size:.82em; }
+  .qlist .del{ cursor:pointer; color:var(--accent); background:none; border:none; font-size:18px; line-height:1; padding:0 4px; flex-shrink:0; }
+  .close{ float:right; cursor:pointer; color:var(--ink-soft); background:none; border:none; font-size:26px; line-height:1; }
+  .swatches{ display:flex; flex-wrap:wrap; gap:12px; }
+  .sw{ cursor:pointer; width:62px; text-align:center; font-size:11px; letter-spacing:.03em; color:var(--ink-soft); }
+  .sw .dot{ width:44px; height:44px; border-radius:50%; margin:0 auto 5px; border:2px solid var(--rule); transition:border-color .2s; }
+  .sw.active .dot{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+  .cpicker{ display:inline-flex; align-items:center; gap:8px; margin-right:14px; margin-top:10px;
+    font-size:14px; color:var(--ink-soft); }
+  .cpicker input[type=color]{ width:34px; height:34px; padding:0; border:1px solid var(--rule);
+    background:transparent; cursor:pointer; margin:0; }
+  .tog{ display:flex; align-items:center; gap:10px; font-size:16px; cursor:pointer; }
+  .tog input{ width:auto; margin:0; }
+</style>
+</head>
+<body>
+  <div class="vignette"></div>
+  <div class="page">
+    <header>
+      <div class="left"><span class="label">Tempo</span><span id="weather">—</span></div>
+      <div class="right">
+        <span class="label">Hoje</span><span id="date">—</span>
+        <div class="moon-line" id="moonLine"></div>
+        <div class="event-line" id="eventLine" style="display:none"></div>
+      </div>
+    </header>
+    <main>
+      <div class="time" id="time">--<span class="colon">:</span>--</div>
+      <div class="quote-wrap">
+        <div class="quote" id="quote"></div>
+        <div class="attr" id="attr"></div>
+      </div>
+      <div class="rule-mini"></div>
+    </main>
+    <footer>
+      <div class="reading">
+        <span class="label">Lendo agora</span>
+        <span class="book" id="book">—</span>
+        <div class="progress" id="progress" style="display:none">
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-text" id="progressText"></div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <button class="gear" id="gear" title="Configurações">&#9881;</button>
+
+  <div class="panel" id="panel">
+    <div class="panel-inner">
+      <button class="close" id="close">&times;</button>
+      <h2>Configurações</h2>
+      <p class="sub">Tudo fica salvo neste dispositivo.</p>
+
+      <section>
+        <h3>Tema</h3>
+        <div class="swatches" id="swatches"></div>
+        <div id="customColors" style="display:none">
+          <div class="cpicker"><input type="color" id="cBg"><span>Fundo</span></div>
+          <div class="cpicker"><input type="color" id="cInk"><span>Tinta</span></div>
+          <div class="cpicker"><input type="color" id="cAccent"><span>Detalhe</span></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Fonte</h3>
+        <select id="fontSelect"></select>
+      </section>
+
+      <section>
+        <h3>Cidade (previsão do tempo)</h3>
+        <div class="row"><input id="cityInput" placeholder="Ex.: Berlin"><button class="act" id="saveCity">Salvar</button></div>
+      </section>
+
+      <section>
+        <h3>Lendo agora</h3>
+        <select id="readMode">
+          <option value="manual">Manual</option>
+          <option value="goodreads">Goodreads (automático)</option>
+          <option value="endpoint">Endpoint próprio (JSON)</option>
+        </select>
+        <div id="manualFields">
+          <input id="bookTitle" placeholder="Título">
+          <input id="bookAuthor" placeholder="Autor">
+        </div>
+        <div id="goodreadsFields" style="display:none">
+          <input id="grId" placeholder="ID numérico do Goodreads (ex.: 12345678)">
+        </div>
+        <div id="endpointFields" style="display:none">
+          <input id="endpointUrl" placeholder="https://seu-worker.exemplo/leitura">
+        </div>
+        <div class="row">
+          <button class="act" id="saveReading">Salvar</button>
+          <button class="ghost" id="syncNow">Sincronizar agora</button>
+        </div>
+        <p class="sub" id="readStatus" style="margin-top:8px"></p>
+      </section>
+
+      <section>
+        <h3>Progresso do livro</h3>
+        <p class="sub" style="margin-bottom:10px">Livro físico: página atual + total. Kindle: só a porcentagem.</p>
+        <div class="row">
+          <input id="progCurrent" type="number" min="0" placeholder="Página atual">
+          <input id="progTotal" type="number" min="0" placeholder="Total de páginas">
+        </div>
+        <div class="row" style="margin-top:6px">
+          <input id="progPercent" type="number" min="0" max="100" placeholder="OU porcentagem (Kindle)">
+          <button class="act" id="saveProgress">Salvar</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="ghost" id="syncProgress" style="flex:1">Buscar do Goodreads</button>
+        </div>
+        <p class="sub" id="progStatus" style="margin-top:8px"></p>
+      </section>
+
+      <section>
+        <h3>Suas citações</h3>
+        <textarea id="qText" placeholder="A citação..."></textarea>
+        <div class="row"><input id="qAuthor" placeholder="Autor, Obra"><button class="act" id="addQuote">Adicionar</button></div>
+        <ul class="qlist" id="qList"></ul>
+      </section>
+
+      <section>
+        <h3>Echo Show</h3>
+        <label class="tog"><input type="checkbox" id="keepAwake"> Manter a tela ativa (áudio mudo em loop)</label>
+        <p class="sub" style="margin-top:8px">Impede o Silk de voltar à tela inicial. É um truque de comunidade — pode parar de funcionar se a Amazon mudar o navegador. Numa TV, pode desligar.</p>
+      </section>
+
+      <section>
+        <h3>Backup / transferir pro Echo Show</h3>
+        <p class="sub" style="margin-bottom:10px">As configurações ficam salvas só neste aparelho. Exporte aqui e cole no Echo Show pra levar tudo de uma vez.</p>
+        <textarea id="cfgBox" placeholder="Clique em Exportar para gerar o código — ou cole um código aqui e clique em Importar."></textarea>
+        <div class="row">
+          <button class="ghost" id="cfgExport">Exportar</button>
+          <button class="act" id="cfgImport">Importar</button>
+        </div>
+        <p class="sub" id="cfgStatus" style="margin-top:8px"></p>
+      </section>
+    </div>
+  </div>
+
+<script>
+/* ---------- temas ---------- */
+const THEMES = {
+  pergaminho:{bg:'#ece2cf',bg2:'#e3d6bd',ink:'#2c2417',ink_soft:'#6e6049',accent:'#7d3a2c',dark:false},
+  sepia:     {bg:'#e4d3b0',bg2:'#d8c39a',ink:'#3a2a18',ink_soft:'#7a6242',accent:'#9c5a2c',dark:false},
+  eink:      {bg:'#cfc9bb',bg2:'#cfc9bb',ink:'#1c1a16',ink_soft:'#5e574b',accent:'#3a2f24',dark:false},
+  tinta:     {bg:'#161310',bg2:'#1e1812',ink:'#ecdfc6',ink_soft:'#9d8d70',accent:'#c79a55',dark:true},
+  bosque:    {bg:'#16201a',bg2:'#1d2a22',ink:'#e6e0cc',ink_soft:'#9bae9a',accent:'#cda24f',dark:true},
+  bordo:     {bg:'#1c1012',bg2:'#26171a',ink:'#ecd9cf',ink_soft:'#b08a82',accent:'#d98a5a',dark:true},
+  nevoa:     {bg:'#1a1e24',bg2:'#222831',ink:'#e3e6ea',ink_soft:'#93a0ad',accent:'#d8b06a',dark:true}
+};
+const DAY = THEMES.pergaminho, NIGHT = THEMES.tinta;
+const SW = [['auto','Automático'],['pergaminho','Pergaminho'],['sepia','Sépia'],['eink','E-ink'],
+            ['tinta','Tinta da Noite'],['bosque','Bosque'],['bordo','Bordô'],['nevoa','Névoa Azul'],
+            ['custom','Personalizado']];
+const FONTS = ['EB Garamond','Lora','Crimson Pro','Spectral','Playfair Display','Cormorant Garamond','Old Standard TT'];
+
+/* ---------- defaults / storage ---------- */
+const DEFAULTS = {
+  city:"Berlin", theme:"auto", keepAwake:true, font:"EB Garamond",
+  customTheme:{bg:"#ece2cf", ink:"#2c2417", accent:"#7d3a2c"},
+  book:{ title:"", author:"" }, progress:{ current:0, total:0, percent:0 },
+  reading:{ mode:"goodreads", grId:"142664297", endpoint:"" },
+  quotes:[
+    {t:"Viver é muito perigoso.",a:"Guimarães Rosa, Grande Sertão: Veredas"},
+    {t:"Tudo no mundo começou com um sim.",a:"Clarice Lispector, A Hora da Estrela"},
+    {t:"Ao vencedor, as batatas.",a:"Machado de Assis, Quincas Borba"},
+    {t:"O essencial é invisível aos olhos.",a:"Saint-Exupéry, O Pequeno Príncipe"},
+    {t:"A vida é a arte do encontro.",a:"Vinicius de Moraes"},
+    {t:"Navegar é preciso; viver não é preciso.",a:"Fernando Pessoa"}
+  ]
+};
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem("litclock."+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem("litclock."+k, JSON.stringify(v)); }catch(e){} }
+};
+let state = {
+  city:store.get("city",DEFAULTS.city),
+  theme:store.get("theme",DEFAULTS.theme),
+  keepAwake:store.get("keepAwake",DEFAULTS.keepAwake),
+  font:store.get("font",DEFAULTS.font),
+  customTheme:store.get("customTheme",DEFAULTS.customTheme),
+  book:store.get("book",DEFAULTS.book),
+  progress:store.get("progress",DEFAULTS.progress),
+  reading:store.get("reading",DEFAULTS.reading),
+  quotes:store.get("quotes",DEFAULTS.quotes)
+};
+
+const $ = id => document.getElementById(id);
+let lastMinute=-1, lastBucket=-1, lastHour=-1;
+
+function hexToRgb(hex){ const n=hex.replace('#',''); return {r:parseInt(n.substr(0,2),16),g:parseInt(n.substr(2,2),16),b:parseInt(n.substr(4,2),16)}; }
+function rgbToHex(r,g,b){ const h=x=>x.toString(16).padStart(2,'0'); return '#'+h(r)+h(g)+h(b); }
+function hexA(hex,a){ const c=hexToRgb(hex); return `rgba(${c.r},${c.g},${c.b},${a})`; }
+function mix(c1,c2,t){ const a=hexToRgb(c1),b=hexToRgb(c2); return rgbToHex(Math.round(a.r*(1-t)+b.r*t),Math.round(a.g*(1-t)+b.g*t),Math.round(a.b*(1-t)+b.b*t)); }
+function isDark(hex){ const c=hexToRgb(hex); return (0.2126*c.r+0.7152*c.g+0.0722*c.b)<128; }
+function buildCustom(c){ return {bg:c.bg, bg2:mix(c.bg,c.ink,0.07), ink:c.ink, ink_soft:mix(c.ink,c.bg,0.45), accent:c.accent, dark:isDark(c.bg)}; }
+
+function applyTheme(){
+  let t;
+  if(state.theme==='auto'){ const h=new Date().getHours(); t=(h<6||h>=18)?NIGHT:DAY; }
+  else if(state.theme==='custom') t=buildCustom(state.customTheme);
+  else t=THEMES[state.theme]||DAY;
+  const s=document.body.style;
+  s.setProperty('--bg',t.bg); s.setProperty('--bg2',t.bg2);
+  s.setProperty('--ink',t.ink); s.setProperty('--ink-soft',t.ink_soft);
+  s.setProperty('--accent',t.accent);
+  s.setProperty('--rule',hexA(t.ink,.20)); s.setProperty('--rule-soft',hexA(t.ink,.10));
+  s.setProperty('--font',"'"+(state.font||'EB Garamond')+"'");
+  document.body.classList.toggle('dark',!!t.dark);
+}
+
+/* ---------- relógio + citação ---------- */
+function tick(){
+  const now=new Date(), h=now.getHours(), m=now.getMinutes();
+  $("time").innerHTML = String(h).padStart(2,"0")+'<span class="colon">:</span>'+String(m).padStart(2,"0");
+  if(m!==lastMinute){ lastMinute=m;
+    $("date").textContent = now.toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+    renderMoonAndEvents(); }
+  if(h!==lastHour){ lastHour=h; if(state.theme==='auto') applyTheme(); }
+  const bucket=Math.floor((h*60+m)/30);
+  if(bucket!==lastBucket){ lastBucket=bucket; renderQuote(bucket); }
+}
+function renderQuote(bucket){
+  const q=state.quotes;
+  if(!q.length){ $("quote").textContent=""; $("attr").textContent=""; return; }
+  const item=q[bucket%q.length];
+  const parts=(item.a||"").split(",");
+  const author=(parts.shift()||"").trim(), work=parts.join(",").trim();
+  $("quote").textContent=item.t;
+  $("attr").innerHTML=author+(work?' · <span class="work">'+work+"</span>":"");
+}
+function renderBook(){
+  const b=state.book;
+  $("book").innerHTML = (b&&b.title)
+    ? b.title+(b.author?' <span class="by">— '+b.author+"</span>":"")
+    : "—";
+  renderProgress();
+}
+function renderProgress(){
+  const p=state.progress;
+  if(!p){ $("progress").style.display='none'; return; }
+  let pct, text;
+  if(p.percent>0){
+    pct=Math.min(100, p.percent);
+    text=pct+'%';
+  } else if(p.current>0 && p.total>0){
+    pct=Math.min(100, Math.round(100*p.current/p.total));
+    text='Página '+p.current+' de '+p.total+' · '+pct+'%';
+  } else { $("progress").style.display='none'; return; }
+  $("progressFill").style.width = pct+'%';
+  $("progressText").textContent = text;
+  $("progress").style.display = '';
+}
+
+/* ---------- ícones do tempo ---------- */
+const WMO={0:"Céu limpo",1:"Predom. limpo",2:"Parcialmente nublado",3:"Nublado",45:"Névoa",48:"Névoa",
+  51:"Garoa",53:"Garoa",55:"Garoa",61:"Chuva",63:"Chuva",65:"Chuva forte",66:"Chuva congelante",67:"Chuva congelante",
+  71:"Neve",73:"Neve",75:"Neve forte",77:"Flocos de neve",80:"Pancadas de chuva",81:"Pancadas de chuva",82:"Aguaceiro",
+  85:"Neve",86:"Neve",95:"Tempestade",96:"Tempestade",99:"Tempestade"};
+
+const ICONS={
+  sun:`<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="7" y2="7"/><line x1="17" y1="17" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="7" y2="17"/><line x1="17" y1="7" x2="19.1" y2="4.9"/>`,
+  moon:`<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>`,
+  cloud:`<path d="M7 18a5 5 0 0 1-.8-9.94A6 6 0 0 1 18 9a4.5 4.5 0 0 1 .5 8.97z"/>`,
+  sun_cloud:`<circle cx="8" cy="8" r="3"/><line x1="8" y1="3" x2="8" y2="4.2"/><line x1="13" y1="8" x2="11.8" y2="8"/><line x1="4.5" y1="4.5" x2="5.4" y2="5.4"/><line x1="11.5" y1="4.5" x2="10.6" y2="5.4"/><path d="M9 20a4 4 0 0 1-.6-7.96A5 5 0 0 1 18 13a3.5 3.5 0 0 1 .5 7z"/>`,
+  fog:`<line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="13" x2="21" y2="13"/><line x1="3" y1="17" x2="21" y2="17"/>`,
+  drizzle:`<path d="M7 13a5 5 0 0 1-.8-9.94A6 6 0 0 1 18 4a4.5 4.5 0 0 1 .5 8.97z"/><line x1="9" y1="17" x2="9" y2="19"/><line x1="14" y1="17" x2="14" y2="19"/>`,
+  rain:`<path d="M7 13a5 5 0 0 1-.8-9.94A6 6 0 0 1 18 4a4.5 4.5 0 0 1 .5 8.97z"/><line x1="8" y1="16" x2="7" y2="20"/><line x1="12" y1="16" x2="11" y2="20"/><line x1="16" y1="16" x2="15" y2="20"/>`,
+  snow:`<path d="M7 13a5 5 0 0 1-.8-9.94A6 6 0 0 1 18 4a4.5 4.5 0 0 1 .5 8.97z"/><circle cx="8" cy="18" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="20" r=".6" fill="currentColor" stroke="none"/><circle cx="16" cy="18" r=".6" fill="currentColor" stroke="none"/>`,
+  storm:`<path d="M7 13a5 5 0 0 1-.8-9.94A6 6 0 0 1 18 4a4.5 4.5 0 0 1 .5 8.97z"/><polyline points="12,15 10,19 13,19 11,22"/>`
+};
+function svgIcon(name){ return '<svg class="wicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[name]||ICONS.cloud)+'</svg>'; }
+function iconForWMO(code,isDay){
+  if(code===0||code===1) return isDay?'sun':'moon';
+  if(code===2) return isDay?'sun_cloud':'cloud';
+  if(code===3) return 'cloud';
+  if(code===45||code===48) return 'fog';
+  if(code>=51&&code<=57) return 'drizzle';
+  if((code>=61&&code<=67)||(code>=80&&code<=82)) return 'rain';
+  if((code>=71&&code<=77)||code===85||code===86) return 'snow';
+  if(code===95||code===96||code===99) return 'storm';
+  return 'cloud';
+}
+
+/* ---------- fases da lua e eventos celestes ---------- */
+function moonPhase(date){
+  const synodic=29.530588853;
+  const ref=new Date(Date.UTC(2000,0,6,18,14));
+  const days=(date-ref)/86400000;
+  return ((days%synodic)+synodic)%synodic/synodic;
+}
+function moonName(p){
+  if(p<.03||p>.97) return 'Lua nova';
+  if(p<.22) return 'Crescente côncava';
+  if(p<.28) return 'Quarto crescente';
+  if(p<.47) return 'Crescente gibosa';
+  if(p<.53) return 'Lua cheia';
+  if(p<.72) return 'Minguante gibosa';
+  if(p<.78) return 'Quarto minguante';
+  return 'Minguante côncava';
+}
+function moonSVG(p){
+  const illum=(1-Math.cos(2*Math.PI*p))/2;
+  const waxing=p<.5;
+  if(illum>.97) return '<circle cx="12" cy="12" r="8" fill="currentColor" stroke="currentColor"/>';
+  if(illum<.03) return '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor"/>';
+  const rx=Math.abs(1-2*illum)*8;
+  const outer=waxing?'1':'0';
+  const inner=(illum<.5)?(waxing?'0':'1'):(waxing?'1':'0');
+  return '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor"/>'
+       + '<path d="M12 4 A 8 8 0 0 '+outer+' 12 20 A '+rx.toFixed(1)+' 8 0 0 '+inner+' 12 4 Z" fill="currentColor" stroke="none"/>';
+}
+const SKY_EVENTS=[
+  {date:'2026-06-21', name:'Solstício de verão'},
+  {date:'2026-07-29', name:'Pico das Delta Aquaridas'},
+  {date:'2026-08-12', name:'Pico das Perseidas'},
+  {date:'2026-09-23', name:'Equinócio de outono'},
+  {date:'2026-10-21', name:'Pico das Oriônidas'},
+  {date:'2026-11-17', name:'Pico das Leônidas'},
+  {date:'2026-12-14', name:'Pico das Gemínidas'},
+  {date:'2026-12-21', name:'Solstício de inverno'},
+  {date:'2027-01-03', name:'Pico das Quadrantidas'},
+  {date:'2027-03-20', name:'Equinócio de primavera'},
+  {date:'2027-04-22', name:'Pico das Líridas'},
+  {date:'2027-05-06', name:'Pico das Eta Aquaridas'},
+  {date:'2027-06-21', name:'Solstício de verão'}
+];
+function nextSkyEvent(){
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  for(const e of SKY_EVENTS){
+    const d=new Date(e.date+'T00:00:00');
+    const diff=Math.round((d-today)/86400000);
+    if(diff>=-1 && diff<=7) return {...e, diff};
+  }
+  return null;
+}
+function fmtEventWhen(diff,dateStr){
+  if(diff===0) return 'hoje';
+  if(diff===1) return 'amanhã';
+  if(diff===-1) return 'ontem';
+  const d=new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('pt-BR',{day:'numeric',month:'long'});
+}
+function renderMoonAndEvents(){
+  const p=moonPhase(new Date());
+  $("moonLine").innerHTML='<svg class="moon-icon" viewBox="0 0 24 24" stroke-width="1.4">'+moonSVG(p)+'</svg><span>'+moonName(p)+'</span>';
+  const ev=nextSkyEvent();
+  const el=$("eventLine");
+  if(ev){
+    el.innerHTML='<span class="event-marker">✦</span><span>'+ev.name+' · '+fmtEventWhen(ev.diff,ev.date)+'</span>';
+    el.style.display='';
+  } else el.style.display='none';
+}
+
+/* ---------- previsão do tempo (Open-Meteo, sem chave) ---------- */
+async function loadWeather(){
+  try{
+    const g=await fetch("https://geocoding-api.open-meteo.com/v1/search?name="+encodeURIComponent(state.city)+"&count=1&language=pt&format=json").then(r=>r.json());
+    if(!g.results||!g.results.length){ $("weather").textContent="—"; return; }
+    const {latitude,longitude,name}=g.results[0];
+    const w=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+latitude+"&longitude="+longitude+"&current=temperature_2m,weather_code,is_day&timezone=auto").then(r=>r.json());
+    const code=w.current.weather_code, isDay=!!w.current.is_day;
+    $("weather").innerHTML=svgIcon(iconForWMO(code,isDay))+'<span class="weather-temp">'+Math.round(w.current.temperature_2m)+"°</span> · "+(WMO[code]||"")+" · "+name;
+  }catch(e){ $("weather").textContent="—"; }
+}
+
+/* ---------- sync de leitura ---------- */
+async function syncReading(){
+  const r=state.reading;
+  if(!r||r.mode==="manual"){ renderBook(); return; }
+  try{
+    const prevTitle=state.book.title;
+    let newBook=null;
+    if(r.mode==="goodreads"){
+      if(!r.grId){ setReadStatus("Defina seu ID do Goodreads."); return; }
+      const rss="https://www.goodreads.com/review/list_rss/"+encodeURIComponent(r.grId)+"?shelf=currently-reading&_="+Date.now();
+      const data=await fetch("https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(rss)).then(x=>x.json());
+      if(!data.items||!data.items.length){ setReadStatus("Nenhum livro em 'currently-reading' (o perfil precisa ser público)."); return; }
+      const it=data.items[0];
+      let author=it.author||"";
+      const mm=(it.description||"").match(/author:\s*([^<\n]+)/i);
+      if(!author&&mm) author=mm[1].trim();
+      newBook={title:it.title||"",author:author};
+    } else if(r.mode==="endpoint"){
+      if(!r.endpoint){ setReadStatus("Defina a URL do endpoint."); return; }
+      const d=await fetch(r.endpoint).then(x=>x.json());
+      newBook={title:d.title||"",author:d.author||""};
+    }
+    if(newBook){
+      state.book=newBook; store.set("book",state.book);
+      if(prevTitle && prevTitle!==newBook.title){
+        state.progress={current:0,total:0,percent:0}; store.set("progress",state.progress);
+      }
+      renderBook(); setReadStatus("Atualizado: "+new Date().toLocaleTimeString("pt-BR"));
+      if(r.mode==="goodreads") syncProgressFromGoodreads(true);
+    }
+  }catch(e){ setReadStatus("Falha ao sincronizar (mantendo o último livro)."); }
+}
+function setReadStatus(t){ const el=$("readStatus"); if(el) el.textContent=t; }
+
+async function syncProgressFromGoodreads(silent){
+  const r=state.reading;
+  if(r.mode!=='goodreads'||!r.grId){
+    if(!silent) $("progStatus").textContent="Disponível apenas no modo Goodreads.";
+    return;
+  }
+  if(!silent) $("progStatus").textContent="Buscando...";
+  try{
+    const rss="https://www.goodreads.com/user/updates_rss/"+encodeURIComponent(r.grId)+"?_="+Date.now();
+    const data=await fetch("https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(rss)).then(x=>x.json());
+    if(!data.items||!data.items.length){ if(!silent) $("progStatus").textContent="Nenhuma atualização encontrada."; return; }
+    const target=(state.book.title||"").toLowerCase().split(/[:(]/)[0].trim();
+    for(const it of data.items){
+      const text=((it.title||"")+" "+(it.description||""));
+      const low=text.toLowerCase();
+      if(target && !low.includes(target)) continue;
+      const pageM=text.match(/on page\s+(\d+)\s+of\s+(\d+)/i);
+      if(pageM){
+        state.progress={current:parseInt(pageM[1]),total:parseInt(pageM[2]),percent:0};
+        store.set("progress",state.progress); renderProgress();
+        if(!silent) $("progStatus").textContent="Atualizado: página "+state.progress.current+" de "+state.progress.total+".";
+        return;
+      }
+      const pctM=text.match(/(\d+)%\s+done/i);
+      if(pctM){
+        state.progress={current:0,total:0,percent:parseInt(pctM[1])};
+        store.set("progress",state.progress); renderProgress();
+        if(!silent) $("progStatus").textContent="Atualizado: "+state.progress.percent+"%.";
+        return;
+      }
+    }
+    if(!silent) $("progStatus").textContent="Não achei update de progresso recente pra esse livro no Goodreads.";
+  }catch(e){ if(!silent) $("progStatus").textContent="Falha ao buscar."; }
+}
+
+/* ---------- keep-alive (Echo Show) ---------- */
+let kaAudio=null;
+function silentWav(sec){
+  const sr=8000,ch=1,bps=16,n=sr*sec,dl=n*ch*(bps/8),buf=new ArrayBuffer(44+dl),v=new DataView(buf);
+  let p=0; const ws=s=>{for(let i=0;i<s.length;i++)v.setUint8(p++,s.charCodeAt(i));};
+  const w32=x=>{v.setUint32(p,x,true);p+=4;}, w16=x=>{v.setUint16(p,x,true);p+=2;};
+  ws('RIFF');w32(36+dl);ws('WAVE');ws('fmt ');w32(16);w16(1);w16(ch);w32(sr);w32(sr*ch*(bps/8));w16(ch*(bps/8));w16(bps);ws('data');w32(dl);
+  let bin='';const b=new Uint8Array(buf);for(let i=0;i<b.length;i++)bin+=String.fromCharCode(b[i]);
+  return 'data:audio/wav;base64,'+btoa(bin);
+}
+function startKeepAwake(){
+  if(!kaAudio){ kaAudio=new Audio(silentWav(1)); kaAudio.loop=true; kaAudio.volume=0; }
+  kaAudio.play().catch(()=>{});
+}
+function stopKeepAwake(){ if(kaAudio){ kaAudio.pause(); } }
+function keepAwakeInit(){ if(state.keepAwake) startKeepAwake(); }
+window.addEventListener('pointerdown',()=>{ if(state.keepAwake) startKeepAwake(); },{once:true});
+
+/* ---------- painel ---------- */
+function renderSwatches(){
+  $("swatches").innerHTML = SW.map(([k,name])=>{
+    let dotBg;
+    if(k==='auto') dotBg='linear-gradient(135deg,'+DAY.bg+' 50%,'+NIGHT.bg+' 50%)';
+    else if(k==='custom'){ const c=state.customTheme; dotBg='linear-gradient(135deg,'+c.bg+' 0 58%,'+c.accent+' 58% 100%)'; }
+    else { const t=THEMES[k]; dotBg='linear-gradient(135deg,'+t.bg+' 0 58%,'+t.accent+' 58% 100%)'; }
+    return '<div class="sw'+(state.theme===k?' active':'')+'" data-k="'+k+'"><div class="dot" style="background:'+dotBg+'"></div>'+name+'</div>';
+  }).join("");
+}
+function renderQList(){
+  $("qList").innerHTML = state.quotes.map((q,i)=>
+    '<li><span><span class="qtext">'+q.t+'</span><br><span class="qauth">'+(q.a||"")+'</span></span><button class="del" data-i="'+i+'">&times;</button></li>').join("");
+}
+function syncReadModeUI(){
+  const m=$("readMode").value;
+  $("manualFields").style.display    = m==="manual"   ?"":"none";
+  $("goodreadsFields").style.display = m==="goodreads"?"":"none";
+  $("endpointFields").style.display  = m==="endpoint" ?"":"none";
+}
+function openPanel(){
+  $("cityInput").value=state.city;
+  $("bookTitle").value=state.book.title||""; $("bookAuthor").value=state.book.author||"";
+  $("readMode").value=state.reading.mode||"manual";
+  $("grId").value=state.reading.grId||""; $("endpointUrl").value=state.reading.endpoint||"";
+  $("progCurrent").value=state.progress.current||"";
+  $("progTotal").value=state.progress.total||"";
+  $("progPercent").value=state.progress.percent||"";
+  $("keepAwake").checked=!!state.keepAwake;
+  $("cBg").value=state.customTheme.bg; $("cInk").value=state.customTheme.ink; $("cAccent").value=state.customTheme.accent;
+  $("customColors").style.display = state.theme==='custom' ? '' : 'none';
+  $("fontSelect").innerHTML = FONTS.map(f=>'<option'+(state.font===f?' selected':'')+'>'+f+'</option>').join('');
+  syncReadModeUI(); renderSwatches(); renderQList(); setReadStatus("");
+  $("panel").classList.add("open");
+}
+
+$("gear").onclick=openPanel;
+$("close").onclick=()=>$("panel").classList.remove("open");
+$("panel").onclick=e=>{ if(e.target.id==="panel") $("panel").classList.remove("open"); };
+
+$("swatches").onclick=e=>{ const sw=e.target.closest(".sw"); if(!sw)return;
+  state.theme=sw.dataset.k; store.set("theme",state.theme); applyTheme(); renderSwatches();
+  $("customColors").style.display = state.theme==='custom' ? '' : 'none'; };
+
+['cBg','cInk','cAccent'].forEach(id=>{ $(id).oninput=()=>{
+  state.customTheme={bg:$("cBg").value, ink:$("cInk").value, accent:$("cAccent").value};
+  store.set("customTheme",state.customTheme);
+  if(state.theme==='custom') applyTheme(); renderSwatches(); }; });
+
+$("fontSelect").onchange=()=>{ state.font=$("fontSelect").value; store.set("font",state.font); applyTheme(); };
+
+$("saveCity").onclick=()=>{ state.city=$("cityInput").value.trim()||"Berlin"; store.set("city",state.city); loadWeather(); };
+
+$("readMode").onchange=syncReadModeUI;
+$("saveReading").onclick=()=>{
+  state.reading={ mode:$("readMode").value, grId:$("grId").value.trim(), endpoint:$("endpointUrl").value.trim() };
+  store.set("reading",state.reading);
+  if(state.reading.mode==="manual"){
+    state.book={title:$("bookTitle").value.trim(),author:$("bookAuthor").value.trim()};
+    store.set("book",state.book); renderBook(); setReadStatus("Salvo.");
+  } else { syncReading(); }
+};
+$("saveProgress").onclick=()=>{
+  state.progress={
+    current:parseInt($("progCurrent").value)||0,
+    total:parseInt($("progTotal").value)||0,
+    percent:parseInt($("progPercent").value)||0
+  };
+  store.set("progress",state.progress);
+  renderProgress();
+  $("progStatus").textContent="Salvo.";
+};
+$("syncProgress").onclick=()=>{ syncProgressFromGoodreads(false).then(()=>{
+  $("progCurrent").value=state.progress.current||""; $("progTotal").value=state.progress.total||""; $("progPercent").value=state.progress.percent||"";
+}); };
+$("syncNow").onclick=syncReading;
+
+$("addQuote").onclick=()=>{ const t=$("qText").value.trim(); if(!t)return;
+  state.quotes.push({t,a:$("qAuthor").value.trim()}); store.set("quotes",state.quotes);
+  $("qText").value=""; $("qAuthor").value=""; renderQList(); lastBucket=-1; tick(); };
+$("qList").onclick=e=>{ if(e.target.classList.contains("del")){
+  state.quotes.splice(+e.target.dataset.i,1); store.set("quotes",state.quotes); renderQList(); lastBucket=-1; tick(); } };
+
+$("keepAwake").onchange=e=>{ state.keepAwake=e.target.checked; store.set("keepAwake",state.keepAwake);
+  if(state.keepAwake) startKeepAwake(); else stopKeepAwake(); };
+
+$("cfgExport").onclick=()=>{
+  const cfg={city:state.city,theme:state.theme,keepAwake:state.keepAwake,font:state.font,customTheme:state.customTheme,book:state.book,progress:state.progress,reading:state.reading,quotes:state.quotes};
+  $("cfgBox").value=JSON.stringify(cfg); $("cfgBox").focus(); $("cfgBox").select();
+  $("cfgStatus").textContent="Copie esse código e cole no outro aparelho.";
+};
+$("cfgImport").onclick=()=>{
+  try{
+    const c=JSON.parse($("cfgBox").value.trim());
+    if(c.city!=null) state.city=c.city;
+    if(c.theme!=null) state.theme=c.theme;
+    if(c.keepAwake!=null) state.keepAwake=c.keepAwake;
+    if(c.font!=null) state.font=c.font;
+    if(c.customTheme!=null) state.customTheme=c.customTheme;
+    if(c.book!=null) state.book=c.book;
+    if(c.progress!=null) state.progress=c.progress;
+    if(c.reading!=null) state.reading=c.reading;
+    if(Array.isArray(c.quotes)) state.quotes=c.quotes;
+    ["city","theme","keepAwake","font","customTheme","book","progress","reading","quotes"].forEach(k=>store.set(k,state[k]));
+    applyTheme(); renderBook(); lastBucket=-1; tick();
+    if(state.keepAwake) startKeepAwake(); else stopKeepAwake();
+    if(state.reading.mode!=="manual") syncReading();
+    openPanel();
+    $("cfgStatus").textContent="Importado com sucesso.";
+  }catch(e){ $("cfgStatus").textContent="Código inválido — confira se colou o texto inteiro."; }
+};
+
+/* ---------- boot ---------- */
+applyTheme();
+renderBook();
+renderMoonAndEvents();
+tick();
+loadWeather();
+keepAwakeInit();
+if(state.reading.mode!=="manual") syncReading();
+setInterval(tick,1000);
+setInterval(loadWeather,30*60*1000);
+setInterval(()=>{ if(state.reading.mode!=="manual") syncReading(); },60*60*1000);
+</script>
+</body>
+</html>
