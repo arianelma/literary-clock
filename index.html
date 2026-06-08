@@ -605,11 +605,33 @@ window.addEventListener('pointerdown',()=>{
 let timerEnd=0,timerActive=false;
 function startTimer(min){ timerEnd=Date.now()+min*60000; timerActive=true; $('timerBtns').style.display='none'; $('timerDisplay').style.display=''; updateTimerDisplay(); }
 function stopTimer(){ timerActive=false; $('timerDisplay').style.display='none'; $('timerBtns').style.display=''; }
+
+function playDuckAlarm(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    function quack(t){
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.type='sawtooth';
+      osc.frequency.setValueAtTime(720,t);
+      osc.frequency.setValueAtTime(720,t+0.008);
+      osc.frequency.exponentialRampToValueAtTime(290,t+0.14);
+      gain.gain.setValueAtTime(0,t);
+      gain.gain.linearRampToValueAtTime(0.55,t+0.012);
+      gain.gain.setValueAtTime(0.5,t+0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t+0.19);
+    }
+    const now=ctx.currentTime;
+    quack(now); quack(now+0.30); quack(now+0.60);
+    setTimeout(()=>ctx.close().catch(()=>{}),2500);
+  }catch(e){}
+}
 function updateTimerDisplay(){
   const rem=Math.max(0,timerEnd-Date.now());
   const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
   $('timerTime').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  if(rem<=0&&timerActive){ timerActive=false; $('timerDisplay').style.display='none'; $('timerBtns').style.display=''; const ov=document.createElement('div'); ov.className='timer-overlay'; ov.innerHTML='<span>✓</span>'; document.body.appendChild(ov); setTimeout(()=>ov.remove(),3600); }
+  if(rem<=0&&timerActive){ timerActive=false; $('timerDisplay').style.display='none'; $('timerBtns').style.display=''; const ov=document.createElement('div'); ov.className='timer-overlay'; ov.innerHTML='<span>✓</span>'; document.body.appendChild(ov); setTimeout(()=>ov.remove(),3600); playDuckAlarm(); }
 }
 $('timerBtns').addEventListener('click',e=>{ const btn=e.target.closest('.tbtn'); if(btn) startTimer(+btn.dataset.min); });
 $('timerStop').onclick=stopTimer;
