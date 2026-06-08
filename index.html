@@ -610,21 +610,66 @@ function playDuckAlarm(){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
     function quack(t){
-      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      // noise buffer (breathiness — what makes it sound like a real duck, not a toy)
+      const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*0.55),ctx.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+      const noise=ctx.createBufferSource();
+      noise.buffer=buf;
+
+      // tonal oscillator — sawtooth but lower than before
+      const osc=ctx.createOscillator();
       osc.type='sawtooth';
-      osc.frequency.setValueAtTime(720,t);
-      osc.frequency.setValueAtTime(720,t+0.008);
-      osc.frequency.exponentialRampToValueAtTime(290,t+0.14);
-      gain.gain.setValueAtTime(0,t);
-      gain.gain.linearRampToValueAtTime(0.55,t+0.012);
-      gain.gain.setValueAtTime(0.5,t+0.07);
-      gain.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(t); osc.stop(t+0.19);
+      osc.frequency.setValueAtTime(440,t);
+      osc.frequency.linearRampToValueAtTime(520,t+0.03);  // quick chirp-up at start
+      osc.frequency.exponentialRampToValueAtTime(155,t+0.40); // long sweep down = the "aaack"
+
+      // natural wobble (ducks aren't pitch-perfect)
+      const vib=ctx.createOscillator();
+      vib.type='sine'; vib.frequency.value=7;
+      const vibG=ctx.createGain(); vibG.gain.value=14;
+      vib.connect(vibG); vibG.connect(osc.frequency);
+
+      // bandpass shapes the nasal "quack" formant
+      const bp=ctx.createBiquadFilter();
+      bp.type='bandpass';
+      bp.frequency.setValueAtTime(480,t);
+      bp.frequency.exponentialRampToValueAtTime(190,t+0.42);
+      bp.Q.value=2.2;
+
+      // noise bandpass (gives the raspy breath texture)
+      const nbp=ctx.createBiquadFilter();
+      nbp.type='bandpass';
+      nbp.frequency.setValueAtTime(550,t);
+      nbp.frequency.exponentialRampToValueAtTime(170,t+0.44);
+      nbp.Q.value=2.8;
+
+      // amplitude envelope: sharp attack, medium hold, slow-ish tail
+      const mg=ctx.createGain();
+      mg.gain.setValueAtTime(0,t);
+      mg.gain.linearRampToValueAtTime(0.75,t+0.022);
+      mg.gain.setValueAtTime(0.65,t+0.14);
+      mg.gain.exponentialRampToValueAtTime(0.001,t+0.46);
+
+      const og=ctx.createGain(); og.gain.value=0.62; // tonal
+      const ng=ctx.createGain(); ng.gain.value=0.38; // noise (keeps it organic)
+
+      osc.connect(bp); bp.connect(og); og.connect(mg);
+      noise.connect(nbp); nbp.connect(ng); ng.connect(mg);
+      mg.connect(ctx.destination);
+
+      osc.start(t); osc.stop(t+0.5);
+      vib.start(t); vib.stop(t+0.5);
+      noise.start(t); noise.stop(t+0.5);
     }
+
     const now=ctx.currentTime;
-    quack(now); quack(now+0.30); quack(now+0.60);
-    setTimeout(()=>ctx.close().catch(()=>{}),2500);
+    quack(now);
+    quack(now+1.0);
+    quack(now+2.0);
+    quack(now+3.0);
+    quack(now+4.2);
+    setTimeout(()=>ctx.close().catch(()=>{}),6500);
   }catch(e){}
 }
 function updateTimerDisplay(){
