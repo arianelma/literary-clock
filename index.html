@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Crimson+Pro:ital,wght@0,400;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Lora:ital,wght@0,400;1,400&family=Old+Standard+TT:ital,wght@0,400;1,400&family=Playfair+Display:ital,wght@0,400;1,400&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <style>
   :root{ --bg:#ece2cf; --bg2:#e3d6bd; --ink:#2c2417; --ink-soft:#6e6049;
-         --accent:#7d3a2c; --rule:rgba(44,36,23,.20); --rule-soft:rgba(44,36,23,.10); --font:'EB Garamond'; }
+         --accent:#7d3a2c; --rule:rgba(44,36,23,.20); --rule-soft:rgba(44,36,23,.10); --font:'EB Garamond'; --fscale:1; }
   *{ margin:0; padding:0; box-sizing:border-box; }
   html{ height:100%; }
   body{ font-family:var(--font,'EB Garamond'),Georgia,serif; color:var(--ink);
@@ -51,14 +51,14 @@
 
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:clamp(20px,4vh,46px); }
-  .time{ font-family:'Cormorant',serif; font-weight:300; font-size:clamp(84px,21vh,260px);
+  .time{ font-family:'Cormorant',serif; font-weight:300; font-size:calc(clamp(84px,21vh,260px) * var(--fscale,1));
     line-height:.9; letter-spacing:.01em; font-variant-numeric:tabular-nums; }
   .time .colon{ animation:blink 2s steps(1,end) infinite; }
   @keyframes blink{ 0%,50%{opacity:1} 51%,100%{opacity:.28} }
   .quote-wrap{ max-width:min(900px,84vw); }
-  .quote{ font-style:italic; font-size:clamp(20px,3.4vh,38px); line-height:1.35; }
+  .quote{ font-style:italic; font-size:calc(clamp(20px,3.4vh,38px) * var(--fscale,1)); line-height:1.35; }
   .quote::before{ content:"\201C"; } .quote::after{ content:"\201D"; }
-  .attr{ margin-top:clamp(12px,1.8vh,22px); font-size:clamp(12px,1.6vh,17px);
+  .attr{ margin-top:clamp(12px,1.8vh,22px); font-size:calc(clamp(12px,1.6vh,17px) * var(--fscale,1));
     letter-spacing:.18em; text-transform:uppercase; color:var(--ink-soft); font-weight:500; }
   .attr .work{ font-style:italic; text-transform:none; letter-spacing:.04em; }
   .rule-mini{ width:46px; height:1px; background:var(--accent); margin:0 auto; opacity:.6; }
@@ -67,7 +67,7 @@
   .reading{ text-align:center; }
   .reading .label{ font-size:clamp(11px,1.4vh,14px); letter-spacing:.28em; text-transform:uppercase;
     color:var(--ink-soft); opacity:.75; display:block; margin-bottom:.4em; }
-  .reading .book{ font-size:clamp(16px,2.2vh,24px); font-style:italic; }
+  .reading .book{ font-size:calc(clamp(16px,2.2vh,24px) * var(--fscale,1)); font-style:italic; }
   .reading .book .by{ font-style:normal; color:var(--ink-soft); font-size:.8em; }
   .progress{ margin:12px auto 0; width:min(320px,70vw); }
   .progress-bar{ width:100%; height:1px; background:var(--rule); position:relative; }
@@ -213,6 +213,15 @@
       </section>
 
       <section>
+        <h3>Text size</h3>
+        <div class="row" style="align-items:center;gap:14px">
+          <button class="ghost" id="fsMinus" style="width:44px;height:44px;font-size:22px;flex-shrink:0;padding:0">−</button>
+          <span id="fsLabel" style="flex:1;text-align:center;font-size:18px;color:var(--ink)">100%</span>
+          <button class="ghost" id="fsPlus" style="width:44px;height:44px;font-size:22px;flex-shrink:0;padding:0">+</button>
+        </div>
+      </section>
+
+      <section>
         <h3>City (weather)</h3>
         <div class="row"><input id="cityInput" placeholder="e.g. Berlin"><button class="act" id="saveCity">Save</button></div>
       </section>
@@ -339,7 +348,7 @@ const FONTS=['EB Garamond','Lora','Crimson Pro','Spectral','Playfair Display','C
 
 /* ---------- defaults / storage ---------- */
 const DEFAULTS={
-  lang:'en', city:'Berlin', theme:'auto', keepAwake:true, font:'EB Garamond',
+  lang:'en', city:'Berlin', theme:'auto', keepAwake:true, font:'EB Garamond', fscale:1,
   customTheme:{bg:'#ece2cf',ink:'#2c2417',accent:'#7d3a2c'},
   book:{title:'',author:''}, progress:{current:0,total:0,percent:0},
   reading:{mode:'goodreads',grId:'142664297',endpoint:''},
@@ -359,7 +368,7 @@ const store={
 let state={
   lang:store.get('lang',DEFAULTS.lang), city:store.get('city',DEFAULTS.city),
   theme:store.get('theme',DEFAULTS.theme), keepAwake:store.get('keepAwake',DEFAULTS.keepAwake),
-  font:store.get('font',DEFAULTS.font), customTheme:store.get('customTheme',DEFAULTS.customTheme),
+  font:store.get('font',DEFAULTS.font), fscale:store.get('fscale',DEFAULTS.fscale), customTheme:store.get('customTheme',DEFAULTS.customTheme),
   book:store.get('book',DEFAULTS.book), progress:store.get('progress',DEFAULTS.progress),
   reading:store.get('reading',DEFAULTS.reading), quotes:store.get('quotes',DEFAULTS.quotes)
 };
@@ -386,6 +395,7 @@ function applyTheme(){
   s.setProperty('--accent',t.accent);
   s.setProperty('--rule',hexA(t.ink,.20)); s.setProperty('--rule-soft',hexA(t.ink,.10));
   s.setProperty('--font',"'"+(state.font||'EB Garamond')+"'");
+  s.setProperty('--fscale',state.fscale||1);
   document.body.classList.toggle('dark',!!t.dark);
 }
 function updateDisplayLabels(){
@@ -630,6 +640,7 @@ function openPanel(){
   $('customColors').style.display=state.theme==='custom'?'':'none';
   $('fontSelect').innerHTML=FONTS.map(f=>'<option'+(state.font===f?' selected':'')+'>'+f+'</option>').join('');
   syncReadModeUI(); renderSwatches(); renderQList(); renderLangButtons(); setReadStatus('');
+  $('fsLabel').textContent=Math.round((state.fscale||1)*100)+'%';
   $('panel').classList.add('open');
 }
 
@@ -642,6 +653,8 @@ $('langBtns').addEventListener('click',e=>{ const btn=e.target.closest('.lbtn');
 $('swatches').onclick=e=>{ const sw=e.target.closest('.sw'); if(!sw) return; state.theme=sw.dataset.k; store.set('theme',state.theme); applyTheme(); renderSwatches(); $('customColors').style.display=state.theme==='custom'?'':'none'; };
 ['cBg','cInk','cAccent'].forEach(id=>{ $(id).oninput=()=>{ state.customTheme={bg:$('cBg').value,ink:$('cInk').value,accent:$('cAccent').value}; store.set('customTheme',state.customTheme); if(state.theme==='custom') applyTheme(); renderSwatches(); }; });
 $('fontSelect').onchange=()=>{ state.font=$('fontSelect').value; store.set('font',state.font); applyTheme(); };
+$('fsMinus').onclick=()=>{ state.fscale=Math.max(0.7,Math.round(((state.fscale||1)-0.1)*10)/10); store.set('fscale',state.fscale); applyTheme(); $('fsLabel').textContent=Math.round(state.fscale*100)+'%'; };
+$('fsPlus').onclick=()=>{ state.fscale=Math.min(1.6,Math.round(((state.fscale||1)+0.1)*10)/10); store.set('fscale',state.fscale); applyTheme(); $('fsLabel').textContent=Math.round(state.fscale*100)+'%'; };
 $('saveCity').onclick=()=>{ state.city=$('cityInput').value.trim()||'Berlin'; store.set('city',state.city); loadWeather(); };
 $('readMode').onchange=syncReadModeUI;
 $('saveReading').onclick=()=>{
@@ -656,13 +669,13 @@ $('syncProgress').onclick=()=>{ syncProgressFromGoodreads(false).then(()=>{ $('p
 $('addQuote').onclick=()=>{ const t=$('qText').value.trim(); if(!t) return; state.quotes.push({t,a:$('qAuthor').value.trim()}); store.set('quotes',state.quotes); $('qText').value=''; $('qAuthor').value=''; renderQList(); lastBucket=-1; tick(); };
 $('qList').onclick=e=>{ if(e.target.classList.contains('del')){ state.quotes.splice(+e.target.dataset.i,1); store.set('quotes',state.quotes); renderQList(); lastBucket=-1; tick(); } };
 $('keepAwake').onchange=e=>{ state.keepAwake=e.target.checked; store.set('keepAwake',state.keepAwake); if(state.keepAwake) startKeepAwake(); else stopKeepAwake(); };
-$('cfgExport').onclick=()=>{ const cfg={lang:state.lang,city:state.city,theme:state.theme,keepAwake:state.keepAwake,font:state.font,customTheme:state.customTheme,book:state.book,progress:state.progress,reading:state.reading,quotes:state.quotes}; $('cfgBox').value=JSON.stringify(cfg); $('cfgBox').focus(); $('cfgBox').select(); $('cfgStatus').textContent='Copy this code and paste on the other device.'; };
+$('cfgExport').onclick=()=>{ const cfg={lang:state.lang,city:state.city,theme:state.theme,keepAwake:state.keepAwake,font:state.font,fscale:state.fscale,customTheme:state.customTheme,book:state.book,progress:state.progress,reading:state.reading,quotes:state.quotes}; $('cfgBox').value=JSON.stringify(cfg); $('cfgBox').focus(); $('cfgBox').select(); $('cfgStatus').textContent='Copy this code and paste on the other device.'; };
 $('cfgImport').onclick=()=>{
   try{
     const c=JSON.parse($('cfgBox').value.trim());
-    ['lang','city','theme','keepAwake','font','customTheme','book','progress','reading'].forEach(k=>{ if(c[k]!=null) state[k]=c[k]; });
+    ['lang','city','theme','keepAwake','font','fscale','customTheme','book','progress','reading'].forEach(k=>{ if(c[k]!=null) state[k]=c[k]; });
     if(Array.isArray(c.quotes)) state.quotes=c.quotes;
-    ['lang','city','theme','keepAwake','font','customTheme','book','progress','reading','quotes'].forEach(k=>store.set(k,state[k]));
+    ['lang','city','theme','keepAwake','font','fscale','customTheme','book','progress','reading','quotes'].forEach(k=>store.set(k,state[k]));
     applyTheme(); updateDisplayLabels(); renderBook(); lastBucket=-1; tick();
     if(state.keepAwake) startKeepAwake(); else stopKeepAwake();
     if(state.reading.mode!=='manual') syncReading();
