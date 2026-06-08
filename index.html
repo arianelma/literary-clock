@@ -507,6 +507,20 @@ async function loadWeather(){
 }
 
 /* ---------- reading sync ---------- */
+async function proxyFetch(url){
+  const proxies=[
+    u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+  ];
+  for(const mk of proxies){
+    try{
+      const r=await fetch(mk(url));
+      if(r.ok){ const t=await r.text(); if(t&&t.length>200) return t; }
+    }catch(e){}
+  }
+  throw new Error('All proxies failed');
+}
+
 async function syncReading(){
   const r=state.reading;
   if(!r||r.mode==='manual'){ renderBook(); return; }
@@ -514,10 +528,9 @@ async function syncReading(){
     const prevTitle=state.book.title; let newBook=null;
     if(r.mode==='goodreads'){
       if(!r.grId){ setReadStatus('Set your Goodreads ID first.'); return; }
-      const rssUrl='https://www.goodreads.com/review/list_rss/'+encodeURIComponent(r.grId)+'?shelf=currently-reading&_='+Date.now();
-      const resp=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(rssUrl)).then(x=>x.json());
-      if(!resp.contents){ setReadStatus("Couldn't reach Goodreads."); return; }
-      const doc=new DOMParser().parseFromString(resp.contents,'text/xml');
+      const rssUrl='https://www.goodreads.com/review/list_rss/'+r.grId+'?shelf=currently-reading&_='+Date.now();
+      let xml; try{ xml=await proxyFetch(rssUrl); }catch(e){ setReadStatus('Proxy error — consider setting up the Cloudflare Worker (see README).'); return; }
+      const doc=new DOMParser().parseFromString(xml,'text/xml');
       const items=doc.querySelectorAll('item');
       if(!items.length){ setReadStatus("No book in 'currently-reading' (profile must be public)."); return; }
       const item=items[0];
@@ -546,10 +559,9 @@ async function syncProgressFromGoodreads(silent){
   if(r.mode!=='goodreads'||!r.grId){ if(!silent) $('progStatus').textContent='Available in Goodreads mode only.'; return; }
   if(!silent) $('progStatus').textContent='Fetching...';
   try{
-    const rssUrl='https://www.goodreads.com/user/updates_rss/'+encodeURIComponent(r.grId)+'?_='+Date.now();
-    const resp=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(rssUrl)).then(x=>x.json());
-    if(!resp.contents){ if(!silent) $('progStatus').textContent='Could not reach Goodreads.'; return; }
-    const doc=new DOMParser().parseFromString(resp.contents,'text/xml');
+    const rssUrl='https://www.goodreads.com/user/updates_rss/'+r.grId+'?_='+Date.now();
+    let xml; try{ xml=await proxyFetch(rssUrl); }catch(e){ if(!silent) $('progStatus').textContent='Proxy error — consider the Cloudflare Worker.'; return; }
+    const doc=new DOMParser().parseFromString(xml,'text/xml');
     const items=Array.from(doc.querySelectorAll('item'));
     if(!items.length){ if(!silent) $('progStatus').textContent='No updates found.'; return; }
     const target=(state.book.title||'').toLowerCase().split(/[:(]/)[0].trim();
@@ -564,7 +576,7 @@ async function syncProgressFromGoodreads(silent){
       if(pctM){ state.progress={current:0,total:0,percent:parseInt(pctM[1])}; store.set('progress',state.progress); renderProgress(); if(!silent) $('progStatus').textContent='Updated: '+state.progress.percent+'%.'; return; }
     }
     if(!silent) $('progStatus').textContent='No recent progress update found for this book.';
-  }catch(e){ if(!silent) $('progStatus').textContent='Fetch failed.'; }
+  }catch(e){ if(!silent) $('progStatus').textContent='Fetch failed: '+e.message; }
 }
 
 /* ---------- keep-alive ---------- */
