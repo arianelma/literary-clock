@@ -8,7 +8,7 @@
 <title>Literary Clock</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Crimson+Pro:ital,wght@0,400;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Lora:ital,wght@0,400;1,400&family=Old+Standard+TT:ital,wght@0,400;1,400&family=Playfair+Display:ital,wght@0,400;1,400&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;1,400&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Crimson+Pro:ital,wght@0,400;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Literata:ital,opsz,wght@0,7..72,400;1,7..72,400&family=Lora:ital,wght@0,400;1,400&family=Old+Standard+TT:ital,wght@0,400;1,400&family=Playfair+Display:ital,wght@0,400;1,400&family=Spectral:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <style>
   :root{ --bg:#ece2cf; --bg2:#e3d6bd; --ink:#2c2417; --ink-soft:#6e6049;
          --accent:#7d3a2c; --rule:rgba(44,36,23,.20); --rule-soft:rgba(44,36,23,.10); --font:'EB Garamond'; --fscale:1; }
@@ -36,18 +36,18 @@
 
   header{ display:flex; justify-content:space-between; align-items:flex-start;
     font-size:clamp(13px,1.6vh,17px); letter-spacing:.14em; text-transform:uppercase;
-    color:var(--ink-soft); font-weight:500; }
+    color:var(--ink); font-weight:500; }
   header .right{ text-align:right; }
   .weather-temp{ color:var(--ink); }
   .wicon{ width:1.2em; height:1.2em; vertical-align:-0.25em; margin-right:.5em; color:var(--ink); }
   .moon-line,.event-line{ font-family:var(--font,'EB Garamond'),Georgia,serif; text-transform:none;
-    letter-spacing:0; font-style:italic; font-weight:400; display:flex; align-items:center;
+    letter-spacing:0; font-weight:400; display:flex; align-items:center;
     justify-content:flex-end; gap:7px; margin-top:7px; opacity:.78; }
-  .moon-line{ font-size:.98em; }
-  .event-line{ font-size:.85em; opacity:.62; gap:6px; margin-top:3px; }
-  .moon-icon{ width:1.25em; height:1.25em; flex-shrink:0; color:var(--ink-soft); }
+  .moon-line{ font-size:.98em; opacity:.92; }
+  .event-line{ font-size:.85em; opacity:.82; gap:6px; margin-top:3px; }
+  .moon-icon{ width:1.25em; height:1.25em; flex-shrink:0; color:var(--ink); }
   .event-marker{ display:inline-block; opacity:.8; color:var(--accent); }
-  header .label{ font-size:.72em; letter-spacing:.22em; display:block; margin-bottom:.35em; opacity:.7; }
+  header .label{ font-size:.72em; letter-spacing:.22em; display:block; margin-bottom:.35em; opacity:.55; color:var(--ink-soft); }
 
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:clamp(20px,4vh,46px); }
@@ -67,7 +67,7 @@
   .reading{ text-align:center; }
   .reading .label{ font-size:clamp(11px,1.4vh,14px); letter-spacing:.28em; text-transform:uppercase;
     color:var(--ink-soft); opacity:.75; display:block; margin-bottom:.4em; }
-  .reading .book{ font-size:calc(clamp(16px,2.2vh,24px) * var(--fscale,1)); font-style:italic; }
+  .reading .book{ font-size:calc(clamp(16px,2.2vh,24px) * var(--fscale,1)); }
   .reading .book .by{ font-style:normal; color:var(--ink-soft); font-size:.8em; }
   .progress{ margin:12px auto 0; width:min(320px,70vw); }
   .progress-bar{ width:100%; height:1px; background:var(--rule); position:relative; }
@@ -104,7 +104,7 @@
   .panel-inner{ background:var(--bg); border:1px solid var(--rule); width:min(560px,92vw);
     max-height:88vh; overflow-y:auto; padding:34px 36px; box-shadow:0 30px 80px rgba(0,0,0,.4); }
   .panel h2{ font-family:'Cormorant',serif; font-weight:400; font-size:34px; margin-bottom:6px; }
-  .panel .sub{ color:var(--ink-soft); font-size:14px; margin-bottom:24px; font-style:italic; }
+  .panel .sub{ color:var(--ink-soft); font-size:14px; margin-bottom:24px; }
   .panel section{ margin-bottom:26px; }
   .panel h3{ font-size:13px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:12px; }
   .panel input,.panel select,.panel textarea{ width:100%; font-family:'EB Garamond',serif; font-size:17px;
@@ -344,11 +344,11 @@ const THEMES={
 const DAY=THEMES.pergaminho, NIGHT=THEMES.tinta;
 const SW=[['auto','Auto'],['pergaminho','Parchment'],['sepia','Sepia'],['eink','E-ink'],
           ['tinta','Night Ink'],['bosque','Forest'],['bordo','Bordeaux'],['nevoa','Blue Mist'],['custom','Custom']];
-const FONTS=['EB Garamond','Lora','Crimson Pro','Spectral','Playfair Display','Cormorant Garamond','Old Standard TT'];
+const FONTS=['Literata','EB Garamond','Lora','Crimson Pro','Spectral','Playfair Display','Cormorant Garamond','Old Standard TT'];
 
 /* ---------- defaults / storage ---------- */
 const DEFAULTS={
-  lang:'en', city:'Berlin', theme:'auto', keepAwake:true, font:'EB Garamond', fscale:1,
+  lang:'en', city:'Berlin', theme:'eink', keepAwake:true, font:'Literata', fscale:1,
   customTheme:{bg:'#ece2cf',ink:'#2c2417',accent:'#7d3a2c'},
   book:{title:'',author:''}, progress:{current:0,total:0,percent:0},
   reading:{mode:'goodreads',grId:'142664297',endpoint:''},
